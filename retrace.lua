@@ -71,6 +71,34 @@ function downward(numMoves)
     end
 end
 
+function turnLeft(times)
+    times = times or 1;
+    times = times % 4;
+    if(times > 2) then
+        turnRight(times-2);
+    else
+        for i=1, times do
+            turtle.turnLeft();
+            turtleInfo.dir = turtleInfo.dir + TURN_LEFT;
+            if turtleInfo.dir >= 4 then turtleInfo.dir = turtleInfo.dir - 4; end
+        end
+    end
+end
+
+function turnRight(times)
+    times = times or 1;
+    times = times % 4;
+    if(times > 2) then
+        turnLeft(times-2);
+    else
+        for i=1, times do
+            turtle.turnRight();
+            turtleInfo.dir = turtleInfo.dir + TURN_RIGHT;
+            if turtleInfo.dir >= 4 then turtleInfo.dir = turtleInfo.dir - 4; end
+        end
+    end
+end
+
  -- Simple tunnel 1x1. Checks for trip to and back fuel.
 function tunnelForward(blocks)
     if not checkForFuel(blocks * 2) then return false; end
@@ -99,16 +127,15 @@ end
  -- Retrace the turtle's last numMoves moves or as much as possible. 
 function retrace(numMoves)
     numMoves = numMoves or 1;
+    if numMoves > #movementHistory then
+        numMoves = #movementHistory
+    end
     
     if not checkForFuel(numMoves) then
       return false;
     end
 
     for i=1, numMoves do
-        if(#movementHistory == 0) then
-            break;
-        end
-
         currMove = movementHistory[#movementHistory]; 
 
         if currMove.dir ~= turtleInfo.dir then 
@@ -129,5 +156,9 @@ function retrace(numMoves)
     return true;
 end
 
-tunnelForward(10);
-retrace(20);
+tunnelForward(5);
+turnRight();
+tunnelForward(5);
+turnLeft(3);
+tunnelForward(5);
+retrace(123123);
