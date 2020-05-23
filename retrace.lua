@@ -17,10 +17,12 @@ TURN_LEFT = 3; -- 3 to avoid negative numbers
     Checks if there is enough fuel and refuels if needed.
  ]=]
 function checkForFuel(required)
+    assert(type(required) == "number", "Expected number.");
+
     required = required or 640
     if turtle.getFuelLevel() < required then
         for i = 1, 16 do
-            item = turtle.getItemDetail(i);
+            local item = turtle.getItemDetail(i);
 
             if item and item.name == "minecraft:coal" then
                 turtle.select(i);
@@ -40,6 +42,8 @@ end
 
  -- Wrapper functions to track movement history.
 function forward(numMoves)
+    assert(type(numMoves) == "number", "Expected number.");
+
     numMoves = numMoves or 1;
     for i=1, numMoves do
         turtle.forward(1);
@@ -48,6 +52,8 @@ function forward(numMoves)
 end
 
 function backward(numMoves)
+    assert(type(numMoves) == "number", "Expected number.");
+
     numMoves = numMoves or 1;
     for i=1, numMoves do
         turtle.back(1);
@@ -56,6 +62,8 @@ function backward(numMoves)
 end
 
 function upward(numMoves)
+    assert(type(numMoves) == "number", "Expected number.");
+
     numMoves = numMoves or 1;
     for i=1, numMoves do
         turtle.up(1);
@@ -64,6 +72,8 @@ function upward(numMoves)
 end
 
 function downward(numMoves)
+    assert(type(numMoves) == "number", "Expected number.");
+
     numMoves = numMoves or 1;
     for i=1, numMoves do
         turtle.down(1);
@@ -72,6 +82,8 @@ function downward(numMoves)
 end
 
 function turnLeft(times)
+    assert(type(times) == "number", "Expected number.");
+
     times = times or 1;
     times = times % 4;
     if(times > 2) then
@@ -86,6 +98,8 @@ function turnLeft(times)
 end
 
 function turnRight(times)
+    assert(type(times) == "number", "Expected number.");
+
     times = times or 1;
     times = times % 4;
     if(times > 2) then
@@ -101,6 +115,8 @@ end
 
  -- Simple tunnel 1x1. Checks for trip to and back fuel.
 function tunnelForward(blocks)
+    assert(type(blocks) == "number", "Expected number.");
+
     if not checkForFuel(blocks * 2) then return false; end
     for i = 1, blocks do
         turtle.dig();
@@ -110,6 +126,8 @@ function tunnelForward(blocks)
 end
 
 function matchDirection(wantedDirection)
+    assert(type(wantedDirection) == "number", "Expected number.");
+
     if wantedDirection > turtleInfo.dir + 2 then
         turtle.turnLeft();
         turtle.turnLeft();
@@ -126,6 +144,8 @@ end
 
  -- Retrace the turtle's last numMoves moves or as much as possible. 
 function retrace(numMoves)
+    assert(type(numMoves) == "number", "Expected number.");
+
     numMoves = numMoves or 1;
     if numMoves > #movementHistory then
         numMoves = #movementHistory
@@ -136,7 +156,7 @@ function retrace(numMoves)
     end
 
     for i=1, numMoves do
-        currMove = movementHistory[#movementHistory]; 
+        local currMove = movementHistory[#movementHistory]; 
 
         if currMove.dir ~= turtleInfo.dir then 
             matchDirection(currMove.dir);
@@ -156,9 +176,42 @@ function retrace(numMoves)
     return true;
 end
 
-tunnelForward(5);
-turnRight();
-tunnelForward(5);
-turnLeft(3);
-tunnelForward(5);
-retrace(123123);
+function findItem(itemName)
+    assert(type(itemName) == "string", "Expected string.");
+    for i=1,16 do
+        local itemInfo = turtle.getItemDetail(i);
+        if itemInfo and itemInfo.name == itemName then
+            return i;
+        end
+    end
+    return nil;
+end
+
+function findItemAndSelect(itemName)
+    local slotId = findItem(itemName);
+    if(slotId) then
+        turtle.select(slotId);
+        return true;
+    end
+    return false;
+end
+
+function treeFarm()
+    function findSaplingAndSelect()
+        if(findItemAndSelect("minecraft:oakSapling")) then return true end
+        if(findItemAndSelect("minecraft:birchSapling")) then return true end
+        if(findItemAndSelect("minecraft:spruceSapling")) then return true end
+        return false;
+    end
+    function plantSapling()
+        if not findSaplingAndSelect() then return false end
+        turtle.placeDown()
+    end
+    function waitForLog()
+        while true do
+            local blockInfo = turtle.inspect()
+            if string.find(blockInfo.name,"log") then break end
+            os.sleep(1)
+        end
+    end
+end
