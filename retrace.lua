@@ -43,7 +43,7 @@ end
  -- Wrapper functions to track movement history.
 function forward(numMoves)
     numMoves = numMoves or 1
-    assert(type(numMoves) == "number", "Expected number.")
+    assert(type(numMoves) == "number", "forward: Expected number.")
 
     for i=1, numMoves do
         turtle.forward(1)
@@ -53,7 +53,7 @@ end
 
 function backward(numMoves)
     numMoves = numMoves or 1
-    assert(type(numMoves) == "number", "Expected number.")
+    assert(type(numMoves) == "number", "backward: Expected number.")
     
     for i=1, numMoves do
         turtle.back(1)
@@ -63,7 +63,7 @@ end
 
 function upward(numMoves)
     numMoves = numMoves or 1
-    assert(type(numMoves) == "number", "Expected number.")
+    assert(type(numMoves) == "number", "upward: Expected number.")
 
     for i=1, numMoves do
         turtle.up(1)
@@ -73,7 +73,7 @@ end
 
 function downward(numMoves)
     numMoves = numMoves or 1
-    assert(type(numMoves) == "number", "Expected number.")
+    assert(type(numMoves) == "number", "downward: Expected number.")
 
     for i=1, numMoves do
         turtle.down(1)
@@ -83,7 +83,7 @@ end
 
 function turnLeft(times)
     times = times or 1
-    assert(type(times) == "number", "Expected number.")
+    assert(type(times) == "number", "turnLeft: Expected number.")
 
     times = times % 4
     if(times > 2) then
@@ -99,7 +99,7 @@ end
 
 function turnRight(times)
     times = times or 1
-    assert(type(times) == "number", "Expected number.")
+    assert(type(times) == "number", "turnRight: Expected number.")
 
     times = times % 4
     if(times > 2) then
@@ -114,7 +114,7 @@ function turnRight(times)
 end
 
 function digAndMove(movement)
-    assert(type(movement) == "number", "Expected number.")
+    assert(type(movement) == "number", "digAndMove: Expected number.")
 
     if movement == FORWARD then
         turtle.dig()
@@ -129,7 +129,7 @@ function digAndMove(movement)
 end
 
 function matchDirection(wantedDirection)
-    assert(type(wantedDirection) == "number", "Expected number.")
+    assert(type(wantedDirection) == "number", "matchDirection: Expected number.")
 
     local dif = wantedDirection - turtleInfo.dir
     
@@ -140,7 +140,7 @@ end
  -- Retrace the turtle's last numMoves moves or as much as possible. 
 function retrace(numMoves)
     numMoves = numMoves or 1
-    assert(type(numMoves) == "number", "Expected number.")
+    assert(type(numMoves) == "number", "retrace: Expected number.")
 
     if numMoves > #movementHistory then
         numMoves = #movementHistory
@@ -163,14 +163,17 @@ function retrace(numMoves)
             turtle.forward(1)
         elseif currMove.move == UPWARD then
             turtle.down(1)
-        else
+        elseif currMove.move == DOWNWARD then
             turtle.up(1)
+        else
+            assert(false, "retrace: Unknown direction.")
         end
         table.remove(movementHistory)
     end
     return true
 end
 
+-- Returns the first found slot which contains the item searched.
 function findItem(itemName)
     assert(type(itemName) == "string", "Expected string.")
     for i=1,16 do
@@ -191,12 +194,16 @@ function findItemAndSelect(itemName)
     return false
 end
 
---[=[Requires a log to be infront for the turtle. Uses dfs to mine the tree.
-     Returns to start. If it does not have enough fuel it will not finish the tree.
-     complete(bool) signifies whether to search surrounding blocks for logs.
-     Much more expensive and slow, but chops more complex trees]=]
-function chopTree(logType, complete)
-    assert(type(logType) == "string", "Expected string.")
+--[=[Requires a starting block to be infront for the turtle. Uses dfs to mine the vein.
+     Returns to start. If it does not have enough fuel it will not finish the vein]=]
+
+BASIC_SCAN = 1      -- Just around, above and below
+ADDITIONAL_SCAN = 2 -- Around, above, below and the two additional blocks making a line with the current one
+function digVein(blockNames, scanLevel)
+    assert(type(blockNames) == "table", "digVein: Expected table of strings.")
+
+    scanLevel = scanLevel or BASIC_SCAN
+    assert(type(scanLevel) == "number", "digVein: Expected scanLevel to be a number")
 
     local checked = {} -- The already checked blocks.
     local startingDir = turtleInfo.dir -- Used to track the coordinates
@@ -204,64 +211,79 @@ function chopTree(logType, complete)
     -- Uses startingDir to calculate the coordinates after the next move. Also eww. Rework this.
     local function getCoord(x,y,z,movement)
         if movement == UPWARD then
-            return {x=x,y=y+1,z=z}
+            return {x,y+1,z}
         elseif movement == DOWNWARD then
-            return {x=x,y=y-1,z=z}
+            return {x,y-1,z}
         elseif movement == FORWARD then
             if turtleInfo.dir == startingDir then
-                return {x=x+1,y=y,z=z}
+                return {x+1,y,z}
             end
             if turtleInfo.dir == (startingDir + 1)%4 then
-                return {x=x,y=y,z=z+1}
+                return {x,y,z+1}
             end
             if turtleInfo.dir == (startingDir + 2)%4 then
-                return {x=x-1,y=y,z=z}
+                return {x-1,y,z}
             end
             if turtleInfo.dir == (startingDir + 3)%4 then
-                return {x=x,y=y,z=z-1}
+                return {x,y,z-1}
             end
         elseif movement == BACKWARD then
             if turtleInfo.dir == startingDir then
-                return {x=x-1,y=y,z=z}
+                return {x-1,y,z}
             end
             if turtleInfo.dir == (startingDir + 1)%4 then
-                return {x=x,y=y,z=z-1}
+                return {x,y,z-1}
             end
             if turtleInfo.dir == (startingDir + 2)%4 then
-                return {x=x+1,y=y,z=z}
+                return {x+1,y,z}
             end
             if turtleInfo.dir == (startingDir + 3)%4 then
-                return {x=x,y=y,z=z+1}
+                return {x,y,z+1}
             end
         else
-            assert(false==true, "chopTree::getCoord: Unknown direction")
+            assert(false==true, "digVein::getCoord: Unknown direction")
         end
     end
 
-    local function dfs(depth, x, y, z)
-        checked[{x,y,z}] = true
-        
-        local function dfsHelper(movement, hasBlockInfo, info)
-            if hasBlockInfo and string.find(info.name,logType) then
-                digAndMove(movement)
+    local function getKey(x,y,z)
+        return tostring(x)..","..tostring(y)..","..tostring(z)
+    end
+
+    local function dfs(depth, x, y, z, innerScanLevel)
+        checked[getKey(x,y,z)] = true
+        local function dfsHelper(movement, hasBlockInfo, info, force)
+            if (hasBlockInfo and blockNames[info.name]) or force then
                 newCoord = getCoord(x,y,z,movement)
-                dfs(depth+1,newCoord.x,newCoord.y,newCoord.z)
+                if checked[getKey(newCoord[1],newCoord[2],newCoord[3])] then
+                    return nil
+                end
+                if not checkForFuel(depth+2) then
+                    return nil
+                end
+                digAndMove(movement)
+                if not (hasBlockInfo and blockNames[info.name]) then
+                    dfs(depth+1,newCoord[1],newCoord[2],newCoord[3], BASIC_SCAN)
+                else
+                    dfs(depth+1,newCoord[1],newCoord[2],newCoord[3], scanLevel)
+                end
             end
         end
-        
+
         dfsHelper(FORWARD,turtle.inspect())
-        for i=1, 3 do
-            turnLeft()
-            dfsHelper(FORWARD,turtle.inspect())
-        end
         dfsHelper(UPWARD,turtle.inspectUp())
         dfsHelper(DOWNWARD,turtle.inspectDown())
+        for i=1, 3 do
+            turnLeft()
+             -- we force the 1st and 3rd steps if additional scan is on
+            local hasBlockInfo,info = turtle.inspect()
+            dfsHelper(FORWARD, hasBlockInfo, info, innerScanLevel == ADDITIONAL_SCAN and (i==1 or i==3))
+        end
+        
 
         retrace()
     end
 
-    dfs(0,0,0,0)
-    matchDirection(startingDir)
+    dfs(0,0,0,0,scanLevel)
 end
 
 function treeFarm()
@@ -284,4 +306,4 @@ function treeFarm()
     end
 end
 
-chopTree("log", false)
+digVein({["minecraft:log"]=true,["ThermalFoundation:Ore"]=true}, ADDITIONAL_SCAN)
